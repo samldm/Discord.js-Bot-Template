@@ -1,7 +1,7 @@
 const Logger = require('../utils/Logger');
 const Manager = require('../manager/Manager');
 
-const { Client, ClientOptions, Collection, Routes } = require('discord.js');
+const { Client, ClientOptions, Collection, Routes, SlashCommandBuilder } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const TestsManager = require('../manager/TestsManager');
@@ -35,24 +35,27 @@ module.exports = class AdvancedClient extends Client
         await this.tests.fetchTests();
         await this.tests.runTests("init_start");
 
+        this.loadEvents();
         this.loadCommands();
 
         this.once("ready", () => {
             let globalCommandsMap = this.commands.map((props) => props.data);
+
             this.rest.put(
                 Routes.applicationCommands(this.user.id),
-                { body: [globalCommandsMap] }
+                { body: globalCommandsMap }
             );
 
             this.guildCommands.forEach((gcmds, gid) => {
                 let guildCommandsMap = gcmds.map((props) => props.data);
                 this.rest.put(
                     Routes.applicationGuildCommands(this.user.id, gid),
-                    { body: [guildCommandsMap] }
+                    { body: guildCommandsMap }
                 );
             });
 
             this.tests.runTests("ready");
+            Logger.log(`${this.user.tag} is ready.`);
         });
 
         this.login(this.configs.global.token).catch(() => {
@@ -86,6 +89,31 @@ module.exports = class AdvancedClient extends Client
         }
     }
 
+    async loadEvents() {
+        Logger.log("Loading events.");
+        try {
+            let evtPath = path.resolve(__dirname, "..", this.configs.global.paths.events);
+            let read = await fs.readdirSync(evtPath);
+
+            read.forEach((f) => {
+                let p = path.resolve(evtPath, f);
+                if (f.endsWith(".js")) return this._loadEvt(p);
+    
+                fs.readdir(p, (err, files) => {
+                    if (err) return Logger.error(`An error occured while loading events in category '${f}'.`);
+                    if (!files) return Logger.error(`No files founds in '${f}'.`);
+    
+                    files.forEach((f) => {
+                        let fp = path.resolve(p, f);
+                        if (f.endsWith(".js")) this._loadEvt(fp);
+                    });
+                });
+            });
+        } catch(e) {
+            Logger.error("An error occured while loading events.");
+        }
+    }
+
     async _loadCmd(cmdPath) {
         let props = require(cmdPath);
         let cmdName = cmdPath.split('.').slice(0, -1).join('.').split(path.sep).pop();
@@ -110,5 +138,12 @@ module.exports = class AdvancedClient extends Client
             })
         }
         this._loadedCmds.push({ name: cmdName, loaded: true });
+    }
+
+    async _loadEvt(evtPath) {
+        let props = require(evtPath);
+        if (props.name && props.execute) {
+            this.on(props.name, props.execute.bind(null, this));
+        }
     }
 }
