@@ -1,15 +1,12 @@
 const { SlashCommandBuilder, CommandInteraction } = require('discord.js');
-const Client = require('../structure/Client');
+const AdvancedClient = require('../structure/Client');
 
 module.exports = {
     guilds: [], // Empty = Global command
-    builder: new SlashCommandBuilder()
-        .setName("ping")
-        .setDescription("View Bot and Discord API latencies."),
     /**
      * 
      * @param {CommandInteraction} interaction 
-     * @param {Client} client 
+     * @param {AdvancedClient} client 
      */
     execute: (interaction, client) => {
         interaction.reply({ content: "*Calculating ping...*" }).then(async (res) => {

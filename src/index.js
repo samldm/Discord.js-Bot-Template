@@ -1,4 +1,5 @@
-const Client = require('./structure/Client');
-let client = new Client({ intents: require('../config/global').intents });
+const AdvancedClient = require('./structure/Client');
+
+let client = new AdvancedClient({ intents: require('../config/global').intents });
 
 client.init();

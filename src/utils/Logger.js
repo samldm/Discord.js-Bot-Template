@@ -22,6 +22,10 @@ module.exports = class Logger
         this.send(content, { color, prefix, prefixColor, error: false });
     }
 
+    static info(content, { color = 'blue', prefix = 'INFO', prefixColor = 'blue' } = {}) {
+        this.send(content, { color, prefix, prefixColor, error: false });
+    }
+
     static debug(content, { color = 'yellow', prefix = 'DEBUG', prefixColor = 'yellow' } = {}) {
         this.send(content, { color, prefix, prefixColor, error: false });
     }

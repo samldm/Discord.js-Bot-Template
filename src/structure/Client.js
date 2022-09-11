@@ -1,9 +1,12 @@
-const { Client, ClientOptions, Collection, Routes } = require('discord.js');
 const Logger = require('../utils/Logger');
+const Manager = require('../manager/Manager');
+
+const { Client, ClientOptions, Collection, Routes } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+const TestsManager = require('../manager/TestsManager');
 
-module.exports = class extends Client
+module.exports = class AdvancedClient extends Client
 {
     /**
      * Client
@@ -11,6 +14,11 @@ module.exports = class extends Client
      */
     constructor(opt) {
         super(opt);
+        Logger.info("AdvancedClient Starting...");
+
+        this.tests = new TestsManager(this);
+        this.manager = new Manager();
+        this.manager.commands.fetchAll();
 
         this.commands = new Collection();
         this.guildCommands = new Collection();
@@ -24,30 +32,37 @@ module.exports = class extends Client
     }
 
     async init() {
+        await this.tests.fetchTests();
+        await this.tests.runTests("init_start");
+
         this.loadCommands();
 
         this.once("ready", () => {
-            let globalCommandsMap = this.commands.map((props) => props.builder.toJSON());
+            let globalCommandsMap = this.commands.map((props) => props.data);
             this.rest.put(
                 Routes.applicationCommands(this.user.id),
                 { body: [globalCommandsMap] }
             );
 
             this.guildCommands.forEach((gcmds, gid) => {
-                let guildCommandsMap = gcmds.map((props) => props.builder.toJSON());
+                let guildCommandsMap = gcmds.map((props) => props.data);
                 this.rest.put(
                     Routes.applicationGuildCommands(this.user.id, gid),
                     { body: [guildCommandsMap] }
                 );
             });
+
+            this.tests.runTests("ready");
         });
 
         this.login(this.configs.global.token).catch(() => {
             Logger.error("Invalid token provided. See '/config/global.js'.");
-        })
+        });
+        this.tests.runTests("init_end");
     }
 
     async loadCommands() {
+        Logger.log("Loading commands.");
         try {
             let cmdPath = path.resolve(__dirname, "..", this.configs.global.paths.commands);
             let read = await fs.readdirSync(cmdPath);
@@ -73,13 +88,17 @@ module.exports = class extends Client
 
     async _loadCmd(cmdPath) {
         let props = require(cmdPath);
-        let cmdName = cmdPath.split(path.sep).pop();
-        if (!props.builder || !props.execute) {
+        let cmdName = cmdPath.split('.').slice(0, -1).join('.').split(path.sep).pop();
+        let data = this.manager.commands.data.get(cmdName);
+        if (!data) return Logger.error(`No data found for the command '${cmdName}'`);
+
+        props.data = data;
+        if (!props.execute) {
             this._loadedCmds.push({ name: cmdName, loaded: false });
-            return Logger.error(`Command '${cmdName}' missing 'builder' or 'execute' properties.`);
+            return Logger.error(`Command '${cmdName}' missing 'execute' property.`);
         }
         if (!props.guilds || props.guilds.length === 0) {
-            this.commands.set(props.builder.name, props);
+            this.commands.set(props.data.name, props);
         } else {
             props.guilds.forEach((gid) => {
                 let cmds = this.guildCommands.get(gid);
@@ -87,7 +106,7 @@ module.exports = class extends Client
                     this.guildCommands.set(gid, new Collection());
                     cmds = this.guildCommands.get(gid);
                 }
-                cmds.set(props.builder.name, props);
+                cmds.set(props.data.name, props);
             })
         }
         this._loadedCmds.push({ name: cmdName, loaded: true });

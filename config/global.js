@@ -5,7 +5,7 @@ module.exports = {
     intents: [
         I.Flags.Guilds
     ],
-    paths: { // Based from /src
+    paths: { // Based from ./src
         commands: "./commands/"
     }
 }
