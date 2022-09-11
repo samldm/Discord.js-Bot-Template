@@ -1,0 +1,27 @@
+{
+  "name": "discord.js-bot-template",
+  "version": "0.0.1",
+  "description": "A powerful free discord.js bot template",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/samldm/Discord.js-Bot-Template.git"
+  },
+  "keywords": [
+    "Discord.js"
+  ],
+  "author": "@SamLDM",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/samldm/Discord.js-Bot-Template/issues"
+  },
+  "homepage": "https://github.com/samldm/Discord.js-Bot-Template#readme",
+  "dependencies": {
+    "chalk": "4.1.2",
+    "dayjs": "^1.11.5",
+    "discord.js": "^14.3.0"
+  }
+}
