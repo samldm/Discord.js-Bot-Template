@@ -58,7 +58,7 @@ module.exports = class AdvancedClient extends Client
             Logger.log(`${this.user.tag} is ready.`);
         });
 
-        this.login(this.configs.global.token).catch(() => {
+        this.login(process.env.TOKEN).catch(() => {
             Logger.error("Invalid token provided. See '/config/global.js'.");
         });
         this.tests.runTests("init_end");
